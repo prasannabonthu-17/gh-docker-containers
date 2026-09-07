@@ -12,28 +12,37 @@ jobs:
     environment: testing
     runs-on: ubuntu-latest
     env:
-      MONGODB_CONNECTION_PROTOCOL: mongodb+srv
-      MONGODB_CLUSTER_ADDRESS: cluster0.oj4wbe4.mongodb.net
-      MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
-      MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+#      MONGODB_CONNECTION_PROTOCOL: mongodb+srv
+#      MONGODB_CLUSTER_ADDRESS: cluster0.oj4wbe4.mongodb.net
+#      MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
+#      MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
       PORT: 27017
     steps:
       - name: Get Code
         uses: actions/checkout@v4
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ env.CACHE_KEY }}-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate MongoDB URI
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          node -e "const uri = process.env.MONGODB_URI || ''; if (!/^mongodb(\+srv)?:\/\/.+\.[a-z0-9.-]+\.[a-z]{2,}.*$/i.test(uri)) { console.error('Invalid MONGODB_URI secret. Expected a MongoDB Atlas URI like mongodb+srv://user:password@cluster0.oj4wbe4.mongodb.net/?retryWrites=true&w=majority'); process.exit(1); } console.log('MONGODB_URI format looks valid.');"
+      
       - name: Run server
         run: npm start & npx wait-on http://127.0.0.1:$PORT # requires MongoDB Atlas to accept requests from anywhere!
+      
       - name: Run tests
         run: npm test
-      - name: Output information
-        run: |
-          echo "MONGODB_USERNAME: $MONGODB_USERNAME"
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -43,5 +52,4 @@ jobs:
           PORT: 27017
         run: |        
           echo "MONGODB_DB_NAME: $MONGODB_DB_NAME"
-          echo "MONGODB_USERNAME: $MONGODB_USERNAME"
           echo "${{ env.PORT }}"
