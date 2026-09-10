@@ -10,9 +10,7 @@ const dbName = process.env.MONGODB_DB_NAME;
 
 // const uri = `${connectionProtocol}://${dbUser}:${dbPassword}@${clusterAddress}/?retryWrites=true&w=majority`;
 
-const client = new MongoClient(uri);
-
-const hasValidMongoUri = /^mongodb(\+srv)?:\/\/.+\.[a-z0-9.-]+\.[a-z]{2,}.*$/i.test(uri || '');
+const hasValidMongoUri = /^mongodb(?:\+srv)?:\/\/[^\s]+$/i.test(uri || '');
 
 if (!uri) {
   throw new Error('Missing MONGODB_URI environment variable. Set it in your environment or GitHub secrets.');
@@ -20,13 +18,15 @@ if (!uri) {
 
 if (!hasValidMongoUri) {
   throw new Error(
-    'Invalid MONGODB_URI. Expected a MongoDB Atlas URI like: mongodb+srv://user:password@cluster0.oj4wbe4.mongodb.net/?retryWrites=true&w=majority'
+    'Invalid MONGODB_URI. Expected a mongodb:// or mongodb+srv:// connection string.'
   );
 }
 
 if (!dbName) {
   throw new Error('Missing MONGODB_DB_NAME environment variable.');
 }
+
+const client = new MongoClient(uri);
 
 console.log('Trying to connect to db');
 

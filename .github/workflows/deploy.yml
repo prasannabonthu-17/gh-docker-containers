@@ -26,7 +26,12 @@ jobs:
         image: mongo:7
         env:
           MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: example      
+          MONGO_INITDB_ROOT_PASSWORD: example
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Get Code
@@ -41,17 +46,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate MongoDB URI
-        env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-        run: |
-          node -e "const uri = process.env.MONGODB_URI || ''; if (!/^mongodb(\+srv)?:\/\/.+\.[a-z0-9.-]+\.[a-z]{2,}.*$/i.test(uri)) { console.error('Invalid MONGODB_URI secret. Expected a MongoDB Atlas URI like mongodb+srv://user:password@cluster0.oj4wbe4.mongodb.net/?retryWrites=true&w=majority'); process.exit(1); } console.log('MONGODB_URI format looks valid.');"
-      
       - name: Run server
         run: |
           npm start > server.log 2>&1 &
           server_pid=$!
-          if ! npx wait-on --timeout 30000 http://127.0.0.1:$PORT; then
+          if ! npx --no-install wait-on --timeout 30000 http-get://127.0.0.1:$PORT/; then
             cat server.log
             kill "$server_pid" 2>/dev/null || true
             exit 1
