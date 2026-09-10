@@ -11,7 +11,13 @@ jobs:
   test:
     environment: testing
     runs-on: ubuntu-latest
+    container: 
+      image: node:20
     env:
+#      MONGODB_CONNECTION_PROTOCOL: mongodb+srv
+#      MONGODB_CLUSTER_ADDRESS: cluster0.oj4wbe4.mongodb.net
+#      MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
+#      MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
       PORT: 3000
     steps:
@@ -37,7 +43,7 @@ jobs:
         run: |
           npm start > server.log 2>&1 &
           server_pid=$!
-          if ! npx --no-install wait-on --timeout 30000 http://127.0.0.1:$PORT; then
+          if ! npx wait-on --timeout 30000 http://127.0.0.1:$PORT; then
             cat server.log
             kill "$server_pid" 2>/dev/null || true
             exit 1
